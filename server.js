@@ -33,7 +33,9 @@ const MODEL_MAPPING = {
   'gemini-pro': 'z-ai/glm-5.1',
 'gemma-romance': 'qwen/qwen3.5-397b-a17b',
 'claude-3-haiku-20240307': 'minimaxai/minimax-m2.5',
-'gpt-4o-latest': 'deepseek-ai/deepseek-v3.1-terminus',
+'gpt-4o-latest': 'minimaxai/minimax-m2.7',
+'claude-3-opus-20240229': 'deepseek-ai/deepseek-v4-flash',
+  'gpt-4-0613': 'deepseek-ai/deepseek-v4-pro'
 };
 
 app.post('/v1/chat/completions', async (req, res) => {
