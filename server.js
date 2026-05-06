@@ -53,16 +53,10 @@ function filterReasoning(text) {
   cleanText = cleanText.replace(/\d\. [\s\S]*?\n\n/gi, '\n\n');
 
   // 4. AUTO-PARAGRAPH FIX (Pecahkan Wall of Text)
-  cleanText = cleanText.replace(/("\s*)(\*)/g, '$1\n\n$2'); // Dialog -> Aksi
-  cleanText = cleanText.replace(/(\*\s*)(")/g, '$1\n\n$2'); // Aksi -> Dialog
-  cleanText = cleanText.replace(/("\s*)(")/g, '$1\n\n$2'); // Dialog -> Dialog
-  cleanText = cleanText.replace(/\n{3,}/g, '\n\n'); // Kemaskan space
-
-  return cleanText.trim();
-}
+  
 
 const MODEL_MAPPING = {
-  'gpt-4o': 'deepseek-ai/deepseek-v3.2',
+  'gpt-4o': 'moonshotai/kimi-k2.6',
   'claude-3-sonnet': 'z-ai/glm4.7',
   'gemini-pro': 'z-ai/glm-5.1',
   'gemma-romance': 'qwen/qwen3.5-397b-a17b',
