@@ -127,46 +127,4 @@ app.post('/v1/chat/completions', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`🚀 Proxy up on ${PORT} | DeepSeek Mode: ${DEEPSEEK_REASONING_MODE}`    // 🛡️ BINA REQUEST BODY
-    const nimRequest = {
-      model: nimModel,
-      messages: sanitizedMessages,
-      temperature: temperature || 0.6,
-      max_tokens: max_tokens || 4096,
-      stream: false // Force false untuk pastikan filter cuci 100%
-    };
-
-    // 🛡️ FIX 3: INJECT DEEPSEEK REASONING EFFORT (Hanya jalan kalau pakai model DeepSeek)
-    if (isDeepSeek) {
-      nimRequest.reasoning_effort = DEEPSEEK_REASONING_MODE;
-    }
-
-    const response = await axios.post(`${NIM_API_BASE}/chat/completions`, nimRequest, {
-      headers: {
-        'Authorization': `Bearer ${NIM_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    // ============================================================================
-    // 🔥 FINAL CLEANING
-    // ============================================================================
-    if (response.data.choices && response.data.choices[0].message) {
-      let originalContent = response.data.choices[0].message.content;
-      
-      if (!SHOW_REASONING) {
-        response.data.choices[0].message.content = filterReasoning(originalContent);
-      }
-    }
-
-    res.json(response.data);
-
-  } catch (error) {
-    console.error('🔥 ERROR:', error.message);
-    if (!res.headersSent) {
-      res.status(error.response?.status || 500).json({ error: { message: error.message } });
-    }
-  }
-});
-
-app.listen(PORT, () => console.log(`🚀 Proxy up on ${PORT} | Filtering: ${!SHOW_REASONING} | DeepSeek Mode: ${DEEPSEEK_REASONING_MODE}`));
+app.listen(PORT, () => console.log(`🚀 Proxy up on ${PORT} | DeepSeek Mode: ${DEEPSEEK_REASONING_MODE}`));
