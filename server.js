@@ -95,7 +95,7 @@ app.post('/v1/chat/completions', async (req, res) => {
       messages: sanitizedMessages,
       temperature: temperature || 0.6,
       max_tokens: max_tokens || 4096,
-      stream: false 
+      stream: true 
     };
 
     if (isDeepSeek) {
