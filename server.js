@@ -1,4 +1,4 @@
-// server.js - THE ULTIMATE CLEANER (DEEPSEEK REASONING ONLY)
+// server.js - THE ULTIMATE CLEANER (DEEPSEEK REASONING ONLY) + HYBRID STREAMING
 // ============================================================================
 const express = require('express');
 const cors = require('cors');
@@ -49,8 +49,6 @@ function filterReasoning(text) {
   cleanText = cleanText.replace(/\n- [\s\S]*?\n\n/gi, '\n\n');
   cleanText = cleanText.replace(/\d\. [\s\S]*?\n\n/gi, '\n\n');
 
-  // --- AUTO-PARAGRAPH FIX DAH DIBUANG ---
-
   return cleanText.trim();
 }
 
@@ -67,7 +65,10 @@ const MODEL_MAPPING = {
 
 app.post('/v1/chat/completions', async (req, res) => {
   try {
-    let { model, messages, temperature, max_tokens } = req.body;
+    // KITA TANGKAP SETTING STREAM DARI SILLYTAVERN (TRUE ATAU FALSE)
+    let { model, messages, temperature, max_tokens, stream } = req.body;
+    let isStream = stream || false; 
+
     let nimModel = MODEL_MAPPING[model] || model;
     
     const isGLM = nimModel.toLowerCase().includes('glm');
@@ -90,34 +91,71 @@ app.post('/v1/chat/completions', async (req, res) => {
       sanitizedMessages[sanitizedMessages.length - 1].content += thinkingPrompt;
     }
 
+    // DINAMIK: Ikut butang yang kau tekan kat SillyTavern
     const nimRequest = {
       model: nimModel,
       messages: sanitizedMessages,
       temperature: temperature || 0.6,
       max_tokens: max_tokens || 4096,
-      stream: true 
+      stream: isStream 
     };
 
     if (isDeepSeek) {
       nimRequest.reasoning_effort = DEEPSEEK_REASONING_MODE;
     }
 
-    const response = await axios.post(`${NIM_API_BASE}/chat/completions`, nimRequest, {
-      headers: {
-        'Authorization': `Bearer ${NIM_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    // ========================================================================
+    // 🔀 CABANG LOGIK BERMULA DI SINI (TRUE vs FALSE)
+    // ========================================================================
 
-    if (response.data.choices && response.data.choices[0].message) {
-      let originalContent = response.data.choices[0].message.content;
-      
-      if (!SHOW_REASONING) {
-        response.data.choices[0].message.content = filterReasoning(originalContent);
+    if (!isStream) {
+      // ----------------------------------------------------------------------
+      // VERSI 1: STREAM OFF (Tunggu Siap, Cuci Teks, Baru Hantar)
+      // ----------------------------------------------------------------------
+      const response = await axios.post(`${NIM_API_BASE}/chat/completions`, nimRequest, {
+        headers: {
+          'Authorization': `Bearer ${NIM_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data.choices && response.data.choices[0].message) {
+        let originalContent = response.data.choices[0].message.content;
+        
+        if (!SHOW_REASONING) {
+          response.data.choices[0].message.content = filterReasoning(originalContent);
+        }
       }
+
+      return res.json(response.data);
+
+    } else {
+      // ----------------------------------------------------------------------
+      // VERSI 2: STREAM ON (Paip Air Buka Penuh - Anti 504 Timeout)
+      // ----------------------------------------------------------------------
+      const response = await axios.post(`${NIM_API_BASE}/chat/completions`, nimRequest, {
+        headers: {
+          'Authorization': `Bearer ${NIM_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        responseType: 'stream' // 🔴 INI KUNCI UTAMA SUPAYA PROXY TAK CRASH BACA CHUNKS
+      });
+
+      // Set headers untuk bagitahu SillyTavern data tengah masuk live
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      // Tembak data terus ke skrin kau setiap kali NVIDIA hantar huruf
+      response.data.on('data', (chunk) => {
+        res.write(chunk);
+      });
+
+      // Bila NVIDIA habis menaip, kita tutup paip
+      response.data.on('end', () => {
+        res.end();
+      });
     }
-
-    res.json(response.data);
 
   } catch (error) {
     console.error('🔥 ERROR:', error.message);
@@ -127,4 +165,4 @@ app.post('/v1/chat/completions', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`🚀 Proxy up on ${PORT} | DeepSeek Mode: ${DEEPSEEK_REASONING_MODE}`));
+app.listen(PORT, () => console.log(`🚀 Proxy up on ${PORT} | DeepSeek Mode: ${DEEPSEEK_REASONING_MODE}`))
